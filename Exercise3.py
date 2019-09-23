@@ -13,7 +13,7 @@ def main():
 	commits = ['913d94b289e056107e521dbab8e79cc72a62a33','7576274874deeccb6da6b09a8d5bd62e8b5538b7','ccf149c76bf37adc5977dc626e141a14e60b5aee']
 	vcc = ['4b6bbff0cf9', 'ed3823b045f', '0936806dca8']
 
-	selected = 0;		#Used to select the respository and commit above.
+	selected = 2;		#Used to select the respository and commit above.
 
 	git = Repo(repositories[selected]).git 		#create a new repository.
 	
@@ -23,7 +23,7 @@ def main():
 	vccb(commits[selected], git, None)
 	vccc(commits[selected], git, None)
 
-	vcctask5(commits[selected], git)
+	# vcctask5(commits[selected], git)
 
 	a(vcc[selected], git)			# Exercise 2 questions modifed to accomodate the new VCC format
 	b(vcc[selected], git, 0)
@@ -35,6 +35,8 @@ def main():
 	h(vcc[selected], git)
 	i(vcc[selected], git)
 	j(vcc[selected], git)
+	k(vcc[selected], git)
+
 # -------------------------------------------------- VCC identification -----------------------------------------------------
 
 def checkPaths(commit, repository, t):
