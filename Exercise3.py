@@ -23,7 +23,7 @@ def main():
 	vccb(commits[selected], git, None)
 	vccc(commits[selected], git, None)
 
-	vcctask4(commits[selected], git)
+	vcctask5(commits[selected], git)
 
 	a(vcc[selected], git)			# Exercise 2 questions modifed to accomodate the new VCC format
 	b(vcc[selected], git, 0)
@@ -124,7 +124,7 @@ def vccc(commit, repository, para):
 
 	paths.clear()
 
-def vcctask4(commit, repository):
+def vcctask5(commit, repository):
 	print("\033[1;32;40mGit Blame Parameter Testing:\033[0;37;40m")
 	parameters = ['-w', '-wM', '-wC', '-wCC', '–wCCC']
  	
