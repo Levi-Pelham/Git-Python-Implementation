@@ -13,7 +13,7 @@ def main():
 	commits = ['913d94b289e056107e521dbab8e79cc72a62a33','7576274874deeccb6da6b09a8d5bd62e8b5538b7','ccf149c76bf37adc5977dc626e141a14e60b5aee']
 	vcc = ['4b6bbff0cf9', 'ed3823b045f', '0936806dca8']
 
-	selected = 2;		#Used to select the respository and commit above.
+	selected = 2		#Used to select the respository and commit above.
 
 	git = Repo(repositories[selected]).git 		#create a new repository.
 	
@@ -76,11 +76,10 @@ def searchvcc(commit, repository, t):		#Helper function for searching for additi
 def vcca(commit, repository, para):		
 	print("\033[1;32;40mLatest Commit of Deleted Lines:\033[0;37;40m")
 	dels = searchvcc(commit, repository, '-')
-
 	for files in set(paths):												# For every file affected by the commit
 		if files.find("null") == -1 and len(files.strip()) != 0:	# If path is not dev/null or blank
 			for deletions in dels:									# For every deleted line in the file
-				for lines in repository.blame(commit+'^', para, "--", files).split('\n'):	#for each line in the blame log 
+				for lines in repository.blame(para, commit+'^', "--", files).split('\n'):	#for each line in the blame log 
 					if len(dels) > 0 and lines.find(deletions) != -1:
 						print(lines[:12].strip() + ' ' + deletions.strip())			# extract the commit from the result
 	paths.clear()
@@ -100,7 +99,7 @@ def vccb(commit, repository, para):
 						scope = lines
 				
 				if lines.startswith('+') and not lines.startswith('+++'):	# If line is an addition and not a file
-					for comms in repository.blame(commit, para, "--", files).split('\n'):	#for each line in the blame log
+					for comms in repository.blame(para, commit, "--", files).split('\n'):	#for each line in the blame log
 						if comms.find(lines[1:]) != -1: 
 							print(comms[:12], scope[1:].strip(), "\033[1;35;40m", lines[1:].strip(),"\033[0;37;40m")
 							break
@@ -110,9 +109,9 @@ def vccc(commit, repository, para):
 	print("\033[1;32;40mFrequent Commits Of File:\033[0;37;40m")	
 	vccs, result = [], []
 	searchvcc(commit, repository, '+')	
-	
+
 	for files in set(paths):												
-		for lines in repository.blame(commit, para, '--', files).split('\n'):	# For each possible VCC in the current commit
+		for lines in repository.blame(para, commit, '--', files).split('\n'):	# For each possible VCC in the current commit
 			vccs.append(lines[:11])									
 	
 	for item in set(vccs):												# For each potential VCC
@@ -129,12 +128,12 @@ def vccc(commit, repository, para):
 def vcctask5(commit, repository):
 	print("\033[1;32;40mGit Blame Parameter Testing:\033[0;37;40m")
 	parameters = ['-w', '-wM', '-wC', '-wCC', '–wCCC']
- 	
+ 
 	for p in parameters:
 		print("\033[1;32;40m",p,"\033[0;37;40m")
 		vcca(commit, repository, p)		
 		vccb(commit, repository, p)	
-		vccc(commit, repository, p)	
+		vccc(commit, repository, p)
 
 # -------------------------------------------------- VCC details -----------------------------------------------------
 
