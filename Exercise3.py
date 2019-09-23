@@ -110,7 +110,7 @@ def vccc(commit, repository, para):
 	searchvcc(commit, repository, '+')	
 	
 	for files in set(paths):												
-		for lines in repository.blame(commit, '--', files).split('\n'):	# For each possible VCC in the current commit
+		for lines in repository.blame(commit, para, '--', files).split('\n'):	# For each possible VCC in the current commit
 			vccs.append(lines[:11])									
 	
 	for item in set(vccs):												# For each potential VCC
