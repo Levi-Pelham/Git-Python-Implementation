@@ -1,27 +1,29 @@
 # Git-Python Implementation 
 # Levi Pelham - a1695061
-# Secure Software Engineering Exercise 3
+# Secure Software Engineering Exercise 2
 
 import os, operator, calendar
 from git import Repo
 from datetime import date
 
-paths = []
+paths = []		#global list to store the file paths from the commit to the VCC commits
 
 def main():
 	repositories = ['tomcat', 'spring-framework', 'camel']
 	commits = ['913d94b289e056107e521dbab8e79cc72a62a33','7576274874deeccb6da6b09a8d5bd62e8b5538b7','ccf149c76bf37adc5977dc626e141a14e60b5aee']
 	vcc = ['4b6bbff0cf9', 'ed3823b045f', '0936806dca8']
 
-	selected = 1;
-	
+	selected = 0;		#Used to select the respository and commit above.
+
 	git = Repo(repositories[selected]).git 		#create a new repository.
+	
+	searchvcc(vcc[selected], git, '+')		#Initialise modified paths in the commit
+	
+	vcca(commits[selected], git)		# Questions 1-3 of thje assignment
+	vccb(commits[selected], git)
+	vccc(commits[selected], git)
 
-	vcca(vcc[selected], git)
-	vccb(vcc[selected], git)
-	vccc(vcc[selected], git)
-
-	a(vcc[selected], git)
+	a(vcc[selected], git)			# Exercise 2 questions modifed to accomodate the new VCC format
 	b(vcc[selected], git, 0)
 	c(vcc[selected], git)
 	d(vcc[selected], git)
@@ -31,49 +33,80 @@ def main():
 	h(vcc[selected], git)
 	i(vcc[selected], git)
 	j(vcc[selected], git)
-
 # -------------------------------------------------- VCC identification -----------------------------------------------------
 
-def searchvcc(commit, repository, t, t2):		#Helper function for searching for additions and deletions
+def checkPaths(commit, repository, t):
+	counts = []
+
+	if len(paths) > 5:		#find 5 most modified files in the commit.
+		for i in paths:
+			count = 0
+			for lines in repository.show(commit, '--', i).split('\n'):
+				if lines.startswith(t):						# Additions or deletions
+					if not lines.startswith(t+t):		# Is not a file 
+								count += 1
+								continue
+			counts.append((i,count))
+		counts.sort(key = operator.itemgetter(1), reverse = True)		# Sort tuples by count
+		paths.clear()
+		
+		for k in range(5): 
+			paths.append(counts[k][0])
+
+		set(paths)
+
+def searchvcc(commit, repository, t):		#Helper function for searching for additions and deletions
 	arr = []
 	for lines in repository.show(commit).split('\n'):
 		if lines.startswith(t):						# Additions or deletions
 			lines = lines[1:]
-			if lines.startswith(t2):		# Is a file
+			if lines.startswith(t+t):		# Is a file
 				paths.append(lines[5:])
 			elif len(lines.strip()) != 0:	# Is not a blank line
 				while lines[0] == ' ':		# Remove leading white space
 					lines = lines[1:]
 				arr.append(lines)
+	checkPaths(commit, repository, t)
 	return arr
 
 def vcca(commit, repository):		
-	print("\033[1;33;40mLatest Commit of Deleted Lines:\033[0;37;40m")
-	dels = searchvcc(commit, repository, '-', '--')
-	
-	for files in paths:												# For every file affected by the commit
+	print("\033[1;32;40mLatest Commit of Deleted Lines:\033[0;37;40m")
+	dels = searchvcc(commit, repository, '-')
+
+	for files in set(paths):												# For every file affected by the commit
 		if files.find("null") == -1 and len(files.strip()) != 0:	# If path is not dev/null or blank
 			for deletions in dels:									# For every deleted line in the file
 				for lines in repository.blame(commit+'^', "--", files).split('\n'):	#for each line in the blame log 
 					if len(dels) > 0 and lines.find(deletions) != -1:
-						print(lines[:12] + ' ' + deletions)			# extract the commit from the result
+						print(lines[:12].strip() + ' ' + deletions.strip())			# extract the commit from the result
 	paths.clear()
 
 def vccb (commit, repository):
-	scope = 'Global'												# If there is no presented scope, global
-	print("\033[1;33;40mScope Of Added Lines:\033[0;37;40m")
-	for lines in repository.show(commit).split('\n'):				# If a scope is found at the end of the line
-		if lines.find('{') == len(lines)-1: 
-			scope = lines
-		if lines.startswith('+') and not lines.startswith('+++'):	# If line is an addition and not a file
-			print(scope)
+	searchvcc(commit, repository, '+')
+	print("\033[1;32;40mScope Of Added Lines:\033[0;37;40m")
+	
+	for files in paths:
+		scope = " Global"												# If there is no presented scope, global
+		if files.find("null") == -1 and len(files.strip()) != 0:
+			for lines in repository.show(commit, '--', files).split('\n'):				# If a scope is found at the end of the line
+				if lines.find('{') != -1 and lines.find('{') == len(lines)-1 and len(lines[1:].strip()) != 0:
+					if len(lines) == 1:
+						scope = saved
+					else:
+						scope = lines
+				if lines.startswith('+') and not lines.startswith('+++'):	# If line is an addition and not a file
+					for comms in repository.blame(commit, "--", files).split('\n'):	#for each line in the blame log
+						if comms.find(lines[1:]) != -1: 
+							print(comms[:12], scope[1:].strip(), "\033[1;35;40m", lines[1:].strip(),"\033[0;37;40m")
+							break
+				saved = lines
 
 def vccc (commit, repository):
-	print("\033[1;33;40mFrequent Commits Of File:\033[0;37;40m")	
+	print("\033[1;32;40mFrequent Commits Of File:\033[0;37;40m")	
 	vccs, result = [], []
-	searchvcc(commit, repository, '+', '++')	
+	searchvcc(commit, repository, '+')	
 	
-	for files in paths:												
+	for files in set(paths):												
 		for lines in repository.blame(commit, '--', files).split('\n'):	# For each possible VCC in the current commit
 			vccs.append(lines[:11])									
 	
@@ -85,6 +118,8 @@ def vccc (commit, repository):
 	
 	for counts in result:
 		print(counts)
+
+	paths.clear()
 
 # -------------------------------------------------- VCC details -----------------------------------------------------
 
@@ -113,10 +148,12 @@ def searchLines(commit, repository, term, flag):		#Helper function for searching
 		print(count2)
 
 def a (commit, repository):
+	print("\033[1;32;40mVCC commit message:\033[0;37;40m")
 	count = 0
+	searchvcc(commit, repository, '+')
 	for lines in repository.log(commit, "-n 1").split('\n'):		#Iterate over the lines in the commit log and return the message
 		if count > 3:
-			print(lines)
+			print(lines.strip())
 		count += 1
 
 def b(commit, repository, flag):	#Helper function for returning number of files affected by the commit
@@ -128,13 +165,13 @@ def b(commit, repository, flag):	#Helper function for returning number of files 
 			tempFiles.append(lines[6:])
 	
 	if flag == 0:		
-		print("\033[1;33;40mFiles Affected By Commit :\033[0;37;40m")
+		print("\033[1;32;40mFiles Affected By Commit :\033[0;37;40m")
 		print(count)
 
 	return tempFiles
 
 def c(commit, repository):
-	print("\033[1;33;40mRepositories Affected By Commit :\033[0;37;40m")
+	print("\033[1;32;40mRepositories Affected By Commit :\033[0;37;40m")
 	count = 0
 	files = list()
 	for lines in repository.show(commit).split('\n'):
@@ -145,28 +182,27 @@ def c(commit, repository):
 	print(len(set(files)))								#Remove duplicate paths to leave the unique count
 
 def d(commit, repository):		
-	print("\033[1;33;40mTotal Lines Deleted :\033[0;37;40m")
+	print("\033[1;32;40mTotal Lines Deleted :\033[0;37;40m")
 	searchLines(commit, repository,'-', 0)
 
 def e(commit, repository):
-	print("\033[1;33;40mTotal Lines Added :\033[0;37;40m")
+	print("\033[1;32;40mTotal Lines Added :\033[0;37;40m")
 	searchLines(commit, repository,'+', 0)
 
 def f(commit, repository):
-	print("\033[1;33;40mTotal Lines Deleted (no spaces/comments) :\033[0;37;40m")	#Flagged 1 to indicate no spaces or comments
+	print("\033[1;32;40mTotal Lines Deleted (no spaces/comments) :\033[0;37;40m")	#Flagged 1 to indicate no spaces or comments
 	searchLines(commit, repository,'-', 1)
 
 def g(commit, repository):
-	print("\033[1;33;40mTotal Lines Added (no spaces/comments) :\033[0;37;40m")
+	print("\033[1;32;40mTotal Lines Added (no spaces/comments) :\033[0;37;40m")
 	searchLines(commit, repository,'+', 1)
 
 def h(commit, repository):
-	print("\033[1;33;40mDays Between Current And Previous Commits :\033[0;37;40m")
+	print("\033[1;32;40mDays Between Current And Previous Commits :\033[0;37;40m")
 	data = [-1]
 	cal = {mon: num for num,mon in enumerate(calendar.month_abbr)}		#Used to differentiate between months in string and integer form
-	modifiedFiles = b(commit, repository, 1)
 	
-	for i in modifiedFiles:
+	for i in paths:
 		revisions = []
 		for lines in repository.log('-n 2','--follow', '--', i).split('\n'):
 			if lines.startswith("Date:"):										#Find the date of the commit
@@ -179,10 +215,9 @@ def h(commit, repository):
 		print(abs(revisions[0] - revisions[1]))
 
 def i(commit, repository):
-	print("\033[1;33;40mNumber Of Modifications To File :\033[0;37;40m")		
-	modifiedFiles = b(commit, repository, 1)
+	print("\033[1;32;40mNumber Of Modifications To File :\033[0;37;40m")		
 	
-	for i in modifiedFiles:							#For each file, count the number of commits 
+	for i in paths:							#For each file, count the number of commits 
 		count = 0	
 		for lines in repository.log('--follow', '--', i).split('\n'):
 			if lines.startswith("commit"):
@@ -190,10 +225,9 @@ def i(commit, repository):
 		print(i + " : " + str(count))
 	
 def j(commit, repository):
-	print("\033[1;33;40mDevelopers That Have Altered The File :\033[0;37;40m")
-	modifiedFiles = b(commit, repository, 1)
+	print("\033[1;32;40mDevelopers That Have Altered The File :\033[0;37;40m")
 	
-	for i in modifiedFiles:
+	for i in paths:
 		authors = []
 		for lines in repository.log('--follow', '--', i).split('\n'):		#For each file, count the authors and remove duplicates
 			if lines.startswith("Author:"):
@@ -204,9 +238,9 @@ def j(commit, repository):
 		print('\n')
 
 def k(commit, repository):
-	print("\033[1;33;40mTotal Commits Made By Each Developer :\033[0;37;40m")					#Use shortlog to count the total number of commits of each author
+	print("\033[1;32;40mTotal Commits Made By Each Developer :\033[0;37;40m")					#Use shortlog to count the total number of commits of each author
 	for lines in repository.shortlog().split('\n'):
 		if lines.find("):") != -1 and not lines.startswith(" "):
-			print(lines)
+			print(lines.strip())
 
 main()
