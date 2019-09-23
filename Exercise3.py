@@ -19,9 +19,11 @@ def main():
 	
 	searchvcc(vcc[selected], git, '+')		#Initialise modified paths in the commit
 	
-	vcca(commits[selected], git)		# Questions 1-3 of thje assignment
-	vccb(commits[selected], git)
-	vccc(commits[selected], git)
+	vcca(commits[selected], git, None)		# Questions 1-3 of thje assignment
+	vccb(commits[selected], git, None)
+	vccc(commits[selected], git, None)
+
+	vcctask4(commits[selected], git)
 
 	a(vcc[selected], git)			# Exercise 2 questions modifed to accomodate the new VCC format
 	b(vcc[selected], git, 0)
@@ -69,19 +71,19 @@ def searchvcc(commit, repository, t):		#Helper function for searching for additi
 	checkPaths(commit, repository, t)
 	return arr
 
-def vcca(commit, repository):		
+def vcca(commit, repository, para):		
 	print("\033[1;32;40mLatest Commit of Deleted Lines:\033[0;37;40m")
 	dels = searchvcc(commit, repository, '-')
 
 	for files in set(paths):												# For every file affected by the commit
 		if files.find("null") == -1 and len(files.strip()) != 0:	# If path is not dev/null or blank
 			for deletions in dels:									# For every deleted line in the file
-				for lines in repository.blame(commit+'^', "--", files).split('\n'):	#for each line in the blame log 
+				for lines in repository.blame(commit+'^', para, "--", files).split('\n'):	#for each line in the blame log 
 					if len(dels) > 0 and lines.find(deletions) != -1:
 						print(lines[:12].strip() + ' ' + deletions.strip())			# extract the commit from the result
 	paths.clear()
 
-def vccb (commit, repository):
+def vccb(commit, repository, para):
 	searchvcc(commit, repository, '+')
 	print("\033[1;32;40mScope Of Added Lines:\033[0;37;40m")
 	
@@ -94,14 +96,15 @@ def vccb (commit, repository):
 						scope = saved
 					else:
 						scope = lines
+				
 				if lines.startswith('+') and not lines.startswith('+++'):	# If line is an addition and not a file
-					for comms in repository.blame(commit, "--", files).split('\n'):	#for each line in the blame log
+					for comms in repository.blame(commit, para, "--", files).split('\n'):	#for each line in the blame log
 						if comms.find(lines[1:]) != -1: 
 							print(comms[:12], scope[1:].strip(), "\033[1;35;40m", lines[1:].strip(),"\033[0;37;40m")
 							break
 				saved = lines
 
-def vccc (commit, repository):
+def vccc(commit, repository, para):
 	print("\033[1;32;40mFrequent Commits Of File:\033[0;37;40m")	
 	vccs, result = [], []
 	searchvcc(commit, repository, '+')	
@@ -121,8 +124,17 @@ def vccc (commit, repository):
 
 	paths.clear()
 
-# -------------------------------------------------- VCC details -----------------------------------------------------
+def vcctask4(commit, repository):
+	print("\033[1;32;40mGit Blame Parameter Testing:\033[0;37;40m")
+	parameters = ['-w', '-wM', '-wC', '-wCC', '–wCCC']
+ 	
+	for p in parameters:
+		print("\033[1;32;40m",p,"\033[0;37;40m")
+		vcca(commit, repository, p)		
+		vccb(commit, repository, p)	
+		vccc(commit, repository, p)	
 
+# -------------------------------------------------- VCC details -----------------------------------------------------
 
 def searchLines(commit, repository, term, flag):		#Helper function for searching for additions and deletions
 	count = 0
